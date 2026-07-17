@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Material Variance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        colors: {
+          brand: { 50:'#eef4ff',100:'#d9e6ff',300:'#93b4fb',400:'#60a5fa',500:'#2563eb',600:'#1d4ed8',700:'#1e40af' },
+          ink: { 900:'#0f172a',700:'#334155',500:'#64748b',400:'#94a3b8',200:'#e2e8f0',100:'#f1f5f9' }
+        },
+        fontFamily: { sans: ['Inter','system-ui','Segoe UI','sans-serif'] }
+      }}
+    }
+  </script>
+  <script>
+    /* Apply theme before first paint (no flash). Default = follow Windows/system. */
+    (function(){
+      var p = localStorage.getItem('jmv-theme') || 'auto';
+      var dark = p === 'dark' || (p === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', dark);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    html{color-scheme:light}
+    html.dark{color-scheme:dark}
+    ::-webkit-scrollbar{width:10px;height:10px}
+    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    html.dark ::-webkit-scrollbar-thumb{background:#475569}
+    body{font-feature-settings:"tnum" 1}
+    .num{font-variant-numeric:tabular-nums}
+    .fade-in{animation:fade .25s ease-out}
+    @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    tr.job-row{transition:background .12s}
+    tr.job-row:hover{background:#f8fafc;cursor:pointer}
+    html.dark tr.job-row:hover{background:#1e293b}
+    .theme-btn{transition:background .12s,color .12s}
+    .theme-btn.seg-on{background:#2563eb;color:#fff}
+    .theme-btn:not(.seg-on):hover{background:#f1f5f9}
+    html.dark .theme-btn:not(.seg-on){color:#94a3b8}
+    html.dark .theme-btn:not(.seg-on):hover{background:#334155}
+  </style>
+</head>
+<body class="h-full bg-ink-100 text-ink-900 dark:bg-slate-900 dark:text-slate-100 font-sans antialiased">
+
+  <header class="bg-white border-b border-ink-200 dark:bg-slate-800 dark:border-slate-700 sticky top-0 z-30">
+    <div class="max-w-[1400px] mx-auto px-6 py-4 flex flex-wrap items-center gap-4 justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-600 grid place-items-center text-white">
+          <i data-lucide="layers" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-semibold leading-tight">Job Material Variance</h1>
+          <p class="text-xs text-ink-500 dark:text-slate-400">Standard vs actual issued (Rand) · demo (mock data)</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <div>
+          <label class="block text-[11px] font-medium text-ink-500 dark:text-slate-400 mb-1">Date from</label>
+          <input id="dateFrom" type="date" class="h-9 px-3 rounded-lg border border-ink-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-medium text-ink-500 dark:text-slate-400 mb-1">Date to</label>
+          <input id="dateTo" type="date" class="h-9 px-3 rounded-lg border border-ink-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
+        </div>
+        <div class="relative">
+          <label class="block text-[11px] font-medium text-ink-500 dark:text-slate-400 mb-1">Search</label>
+          <i data-lucide="search" class="w-4 h-4 text-ink-400 dark:text-slate-500 absolute left-3 top-[34px]"></i>
+          <input id="search" type="text" placeholder="Job # or material…" class="h-9 pl-9 pr-3 w-64 rounded-lg border border-ink-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-medium text-ink-500 dark:text-slate-400 mb-1">Theme</label>
+          <div id="themeSeg" role="group" aria-label="Theme" class="inline-flex items-center h-9 rounded-lg border border-ink-200 dark:border-slate-700 overflow-hidden text-ink-500">
+            <button data-t="light" class="theme-btn px-2.5 h-full grid place-items-center" title="Light" aria-label="Light"><i data-lucide="sun" class="w-4 h-4"></i></button>
+            <button data-t="auto" class="theme-btn px-3 h-full text-xs font-medium" title="Follow Windows" aria-label="Auto (follow system)">Auto</button>
+            <button data-t="dark" class="theme-btn px-2.5 h-full grid place-items-center" title="Dark" aria-label="Dark"><i data-lucide="moon" class="w-4 h-4"></i></button>
+          </div>
+        </div>
+        <button id="resetBtn" class="h-9 px-3 rounded-lg border border-ink-200 dark:border-slate-700 text-sm text-ink-700 dark:text-slate-300 hover:bg-ink-100 dark:hover:bg-slate-800 flex items-center gap-1.5">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
+    <section id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></section>
+
+    <section class="bg-white dark:bg-slate-800 rounded-2xl border border-ink-200 dark:border-slate-700 overflow-hidden">
+      <div class="px-5 py-4 border-b border-ink-200 dark:border-slate-700 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-semibold">Jobs</h2>
+          <p class="text-xs text-ink-500 dark:text-slate-400" id="tableMeta">—</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>On&#8209;track</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>Over&#8209;issued</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Under&#8209;issued</span>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-ink-100 dark:bg-slate-900 text-ink-500 dark:text-slate-400 text-[11px] uppercase tracking-wide">
+            <tr>
+              <th class="text-left font-semibold px-5 py-3">Job #</th>
+              <th class="text-left font-semibold px-5 py-3">Date</th>
+              <th class="text-left font-semibold px-5 py-3">Customer</th>
+              <th class="text-right font-semibold px-5 py-3">Standard cost</th>
+              <th class="text-right font-semibold px-5 py-3">Actual issued</th>
+              <th class="text-right font-semibold px-5 py-3">Variance</th>
+              <th class="text-center font-semibold px-5 py-3">Status</th>
+              <th class="px-3"></th>
+            </tr>
+          </thead>
+          <tbody id="jobBody" class="divide-y divide-ink-200 dark:divide-slate-700"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="hidden px-5 py-16 text-center text-ink-500 dark:text-slate-400">
+        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-ink-400 dark:text-slate-500"></i>
+        <p class="text-sm">No jobs match the current filters.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal" class="hidden fixed inset-0 z-50">
+    <div id="modalBackdrop" class="absolute inset-0 bg-ink-900/50 dark:bg-black/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 grid place-items-center p-4">
+      <div class="fade-in bg-white dark:bg-slate-800 w-full max-w-5xl max-h-[90vh] rounded-2xl border border-ink-200 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
+        <div class="px-6 py-4 border-b border-ink-200 dark:border-slate-700 flex items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="mJob" class="text-base font-semibold">Job</h3>
+              <span id="mStatus" class="text-[11px] font-medium px-2 py-0.5 rounded-full"></span>
+            </div>
+            <p id="mMeta" class="text-xs text-ink-500 dark:text-slate-400 mt-0.5"></p>
+          </div>
+          <button id="closeModal" class="w-8 h-8 grid place-items-center rounded-lg hover:bg-ink-100 dark:hover:bg-slate-700 text-ink-500 dark:text-slate-400">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="p-6 overflow-y-auto space-y-6">
+          <div id="mSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+          <div>
+            <h4 class="text-xs font-semibold text-ink-500 dark:text-slate-400 uppercase tracking-wide mb-2">Variance per material (Rand)</h4>
+            <div class="rounded-xl border border-ink-200 dark:border-slate-700 p-3" style="height:280px;position:relative">
+              <canvas id="mChart" role="img" aria-label="Bar chart of Rand variance per material for the selected job"></canvas>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-ink-500 dark:text-slate-400 uppercase tracking-wide mb-2">Material comparison — standard vs actual issued</h4>
+            <div class="overflow-x-auto rounded-xl border border-ink-200 dark:border-slate-700">
+              <table class="w-full text-sm">
+                <thead class="bg-ink-100 dark:bg-slate-900 text-ink-500 dark:text-slate-400 text-[11px] uppercase tracking-wide">
+                  <tr>
+                    <th class="text-left font-semibold px-4 py-2.5">Material (cost type)</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Standard R</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Despatch R</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Return R</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Actual R</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Actual units</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Variance R</th>
+                    <th class="text-center font-semibold px-4 py-2.5">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="mBody" class="divide-y divide-ink-200 dark:divide-slate-700"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Live iSync data injected at build time by jobvariance.render_html.
+   One record per (job, material/cost-type). See the module docstring for the
+   standard-vs-actual definition. */
+const RAW_DATA = [{"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Fabric", "Standard_Cost": 89000.0, "Despatch_Cost": 92100.0, "Return_Cost": 900.0, "Actual_Cost": 91200.0, "Actual_Units": 3120.0, "Variance": -2200.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Zips", "Standard_Cost": 10600.0, "Despatch_Cost": 10820.0, "Return_Cost": 0.0, "Actual_Cost": 10820.0, "Actual_Units": 3050.0, "Variance": -220.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Labels", "Standard_Cost": 5800.0, "Despatch_Cost": 5820.0, "Return_Cost": 0.0, "Actual_Cost": 5820.0, "Actual_Units": 10600.0, "Variance": -20.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Cotton", "Standard_Cost": 3100.0, "Despatch_Cost": 3040.0, "Return_Cost": 0.0, "Actual_Cost": 3040.0, "Actual_Units": 1500.0, "Variance": 60.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Fabric", "Standard_Cost": 132000.0, "Despatch_Cost": 121500.0, "Return_Cost": 2400.0, "Actual_Cost": 119100.0, "Actual_Units": 3600.0, "Variance": 12900.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Trims Press Studs", "Standard_Cost": 4200.0, "Despatch_Cost": 3980.0, "Return_Cost": 0.0, "Actual_Cost": 3980.0, "Actual_Units": 6100.0, "Variance": 220.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Trims Tape", "Standard_Cost": 6900.0, "Despatch_Cost": 6120.0, "Return_Cost": 0.0, "Actual_Cost": 6120.0, "Actual_Units": 3300.0, "Variance": 780.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Fabric", "Standard_Cost": 240000.0, "Despatch_Cost": 268000.0, "Return_Cost": 3000.0, "Actual_Cost": 265000.0, "Actual_Units": 7200.0, "Variance": -25000.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Zips", "Standard_Cost": 18000.0, "Despatch_Cost": 21500.0, "Return_Cost": 0.0, "Actual_Cost": 21500.0, "Actual_Units": 5200.0, "Variance": -3500.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Buttons", "Standard_Cost": 1600.0, "Despatch_Cost": 1720.0, "Return_Cost": 0.0, "Actual_Cost": 1720.0, "Actual_Units": 1500.0, "Variance": -120.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Sticker and Swing Tags", "Standard_Cost": 165.0, "Despatch_Cost": 165.0, "Return_Cost": 0.0, "Actual_Cost": 165.0, "Actual_Units": 1500.0, "Variance": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Fabric", "Standard_Cost": 31500.0, "Despatch_Cost": 35200.0, "Return_Cost": 300.0, "Actual_Cost": 34900.0, "Actual_Units": 780.0, "Variance": -3400.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Trims Cotton", "Standard_Cost": 2000.0, "Despatch_Cost": 2180.0, "Return_Cost": 0.0, "Actual_Cost": 2180.0, "Actual_Units": 900.0, "Variance": -180.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Trims Buttons", "Standard_Cost": 6000.0, "Despatch_Cost": 7000.0, "Return_Cost": 0.0, "Actual_Cost": 7000.0, "Actual_Units": 1400.0, "Variance": -1000.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Customer Supplied", "Standard_Cost": 0.0, "Despatch_Cost": 1800.0, "Return_Cost": 0.0, "Actual_Cost": 1800.0, "Actual_Units": 60.0, "Variance": -1800.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Fabric", "Standard_Cost": 45000.0, "Despatch_Cost": 41200.0, "Return_Cost": 500.0, "Actual_Cost": 40700.0, "Actual_Units": 1400.0, "Variance": 4300.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Trims Elastic", "Standard_Cost": 4500.0, "Despatch_Cost": 4180.0, "Return_Cost": 0.0, "Actual_Cost": 4180.0, "Actual_Units": 640.0, "Variance": 320.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Trims Tape", "Standard_Cost": 9000.0, "Despatch_Cost": 8600.0, "Return_Cost": 320.0, "Actual_Cost": 8280.0, "Actual_Units": 3100.0, "Variance": 720.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Fabric", "Standard_Cost": 71500.0, "Despatch_Cost": 71600.0, "Return_Cost": 100.0, "Actual_Cost": 71500.0, "Actual_Units": 1100.0, "Variance": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Trims Zips", "Standard_Cost": 10500.0, "Despatch_Cost": 10520.0, "Return_Cost": 0.0, "Actual_Cost": 10520.0, "Actual_Units": 3400.0, "Variance": -20.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Trims Packaging", "Standard_Cost": 4200.0, "Despatch_Cost": 4180.0, "Return_Cost": 0.0, "Actual_Cost": 4180.0, "Actual_Units": 1500.0, "Variance": 20.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Fabric", "Standard_Cost": 110000.0, "Despatch_Cost": 127500.0, "Return_Cost": 1500.0, "Actual_Cost": 126000.0, "Actual_Units": 2600.0, "Variance": -16000.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Trims Drawcord", "Standard_Cost": 3000.0, "Despatch_Cost": 3320.0, "Return_Cost": 0.0, "Actual_Cost": 3320.0, "Actual_Units": 900.0, "Variance": -320.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Trims Buttons", "Standard_Cost": 12000.0, "Despatch_Cost": 12800.0, "Return_Cost": 0.0, "Actual_Cost": 12800.0, "Actual_Units": 6400.0, "Variance": -800.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Fabric", "Standard_Cost": 72000.0, "Despatch_Cost": 66500.0, "Return_Cost": 800.0, "Actual_Cost": 65700.0, "Actual_Units": 1700.0, "Variance": 6300.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Trims Cotton", "Standard_Cost": 3000.0, "Despatch_Cost": 2900.0, "Return_Cost": 0.0, "Actual_Cost": 2900.0, "Actual_Units": 1450.0, "Variance": 100.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Trims Labels", "Standard_Cost": 8000.0, "Despatch_Cost": 7900.0, "Return_Cost": 0.0, "Actual_Cost": 7900.0, "Actual_Units": 8000.0, "Variance": 100.0, "VarianceStatus": "On-track"}];
+
+const fmtR   = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0});
+const fmtR2  = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:2});
+const fmtNum = new Intl.NumberFormat('en-ZA',{maximumFractionDigits:1});
+const TOL = 0.02;
+
+/* ---------- theme: default follows Windows, switch overrides + persists ---------- */
+const THEME_KEY = 'jmv-theme';
+const media = matchMedia('(prefers-color-scheme: dark)');
+function storedPref(){ return localStorage.getItem(THEME_KEY) || 'auto'; }
+function isDark(){ return document.documentElement.classList.contains('dark'); }
+function applyTheme(){
+  const pref = storedPref();
+  const dark = pref === 'dark' || (pref === 'auto' && media.matches);
+  document.documentElement.classList.toggle('dark', dark);
+  document.querySelectorAll('#themeSeg button').forEach(b =>
+    b.classList.toggle('seg-on', b.dataset.t === pref));
+  if(currentJob && !document.getElementById('modal').classList.contains('hidden')) openModal(currentJob);
+}
+media.addEventListener('change', () => { if(storedPref() === 'auto') applyTheme(); });
+
+function chartInk(){
+  const d = isDark();
+  return { grid: d ? '#334155' : '#e2e8f0', tick: d ? '#94a3b8' : '#475569', title: d ? '#64748b' : '#94a3b8' };
+}
+
+function statusOf(std, act){
+  if(std === 0) return act > 0 ? 'Over-issued' : 'On-track';
+  const d = (act - std) / std;
+  if(d >  TOL) return 'Over-issued';
+  if(d < -TOL) return 'Under-issued';
+  return 'On-track';
+}
+
+function buildJobs(rows){
+  const map = new Map();
+  for(const r of rows){
+    if(!map.has(r.JobNumber)){
+      map.set(r.JobNumber, {
+        JobNumber:r.JobNumber, JobDate:r.JobDate, CustomerName:r.CustomerName,
+        JobDescription:r.JobDescription, materials:[],
+        Standard_Cost:0, Actual_Cost:0
+      });
+    }
+    const j = map.get(r.JobNumber);
+    j.materials.push({...r, VarianceStatus: r.VarianceStatus || statusOf(r.Standard_Cost, r.Actual_Cost)});
+    j.Standard_Cost += r.Standard_Cost;
+    j.Actual_Cost   += r.Actual_Cost;
+  }
+  return [...map.values()].map(j => ({
+    ...j,
+    Cost_Variance: j.Standard_Cost - j.Actual_Cost,
+    VarianceStatus: statusOf(j.Standard_Cost, j.Actual_Cost)
+  }));
+}
+
+const ALL_JOBS = buildJobs(RAW_DATA);
+let modalChart = null;
+let currentJob = null;
+
+const badge = {
+  'On-track':    'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  'Over-issued': 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+  'Under-issued':'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+};
+const dot = { 'On-track':'bg-emerald-500','Over-issued':'bg-rose-500','Under-issued':'bg-amber-500' };
+const posCls = 'text-emerald-600 dark:text-emerald-400';
+const negCls = 'text-rose-600 dark:text-rose-400';
+const zeroCls = 'text-ink-500 dark:text-slate-400';
+function vCls(v){ return v > 0 ? posCls : v < 0 ? negCls : zeroCls; }
+
+function getFiltered(){
+  const from = document.getElementById('dateFrom').value;
+  const to   = document.getElementById('dateTo').value;
+  const q    = document.getElementById('search').value.trim().toLowerCase();
+  return ALL_JOBS.filter(j => {
+    if(from && j.JobDate < from) return false;
+    if(to   && j.JobDate > to)   return false;
+    if(q){
+      const inJob = j.JobNumber.toLowerCase().includes(q)
+                 || (j.CustomerName||'').toLowerCase().includes(q)
+                 || (j.JobDescription||'').toLowerCase().includes(q);
+      const inMat = j.materials.some(m => (m.Material||'').toLowerCase().includes(q));
+      if(!inJob && !inMat) return false;
+    }
+    return true;
+  });
+}
+
+function renderCards(jobs){
+  const totalVarCost = jobs.reduce((s,j)=>s+j.Cost_Variance,0);
+  const over  = jobs.filter(j=>j.VarianceStatus==='Over-issued').length;
+  const under = jobs.filter(j=>j.VarianceStatus==='Under-issued').length;
+  const varPositive = totalVarCost >= 0;
+  const cards = [
+    {label:'Total jobs', value:fmtNum.format(jobs.length), icon:'briefcase', tint:'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300', sub:'in selected range'},
+    {label:'Total material variance', value:fmtR.format(Math.abs(totalVarCost)),
+      icon: varPositive?'trending-down':'trending-up',
+      tint: varPositive?'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300':'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
+      sub: varPositive?'under standard (saved)':'over standard'},
+    {label:'Over-issued jobs', value:fmtNum.format(over), icon:'arrow-up-circle', tint:'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300', sub:'actual > standard'},
+    {label:'Under-issued jobs', value:fmtNum.format(under), icon:'arrow-down-circle', tint:'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300', sub:'actual < standard'},
+  ];
+  document.getElementById('cards').innerHTML = cards.map(c => `
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-ink-200 dark:border-slate-700 p-5">
+      <div class="flex items-start justify-between">
+        <span class="text-xs font-medium text-ink-500 dark:text-slate-400">${c.label}</span>
+        <span class="w-9 h-9 rounded-xl grid place-items-center ${c.tint}"><i data-lucide="${c.icon}" class="w-4.5 h-4.5"></i></span>
+      </div>
+      <div class="mt-3 text-2xl font-semibold num">${c.value}</div>
+      <div class="text-xs text-ink-500 dark:text-slate-400 mt-1">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderTable(jobs){
+  const body = document.getElementById('jobBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('tableMeta').textContent =
+    `${jobs.length} job${jobs.length!==1?'s':''} · ${jobs.reduce((s,j)=>s+j.materials.length,0)} job/material lines`;
+  if(!jobs.length){ body.innerHTML=''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  jobs.sort((a,b)=> Math.abs(b.Cost_Variance) - Math.abs(a.Cost_Variance));
+  body.innerHTML = jobs.map((j,i) => {
+    const vc = j.Cost_Variance;
+    const vcSign = vc > 0 ? '+' : '';
+    return `
+    <tr class="job-row" data-idx="${i}">
+      <td class="px-5 py-3 font-medium">${j.JobNumber}</td>
+      <td class="px-5 py-3 text-ink-500 dark:text-slate-400">${j.JobDate}</td>
+      <td class="px-5 py-3">
+        <div class="font-medium">${j.CustomerName||'—'}</div>
+        <div class="text-xs text-ink-500 dark:text-slate-400">${j.JobDescription||''}</div>
+      </td>
+      <td class="px-5 py-3 text-right num">${fmtR.format(j.Standard_Cost)}</td>
+      <td class="px-5 py-3 text-right num">${fmtR.format(j.Actual_Cost)}</td>
+      <td class="px-5 py-3 text-right num font-medium ${vCls(vc)}">${vcSign}${fmtR.format(vc)}</td>
+      <td class="px-5 py-3 text-center">
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${badge[j.VarianceStatus]}">
+          <span class="w-1.5 h-1.5 rounded-full ${dot[j.VarianceStatus]}"></span>${j.VarianceStatus}
+        </span>
+      </td>
+      <td class="px-3 text-ink-400 dark:text-slate-500"><i data-lucide="chevron-right" class="w-4 h-4"></i></td>
+    </tr>`;
+  }).join('');
+  body.querySelectorAll('tr.job-row').forEach(tr => {
+    tr.addEventListener('click', () => openModal(jobs[+tr.dataset.idx]));
+  });
+  lucide.createIcons();
+}
+
+function openModal(job){
+  currentJob = job;
+  document.getElementById('mJob').textContent = `${job.JobNumber}${job.JobDescription? ' — '+job.JobDescription : ''}`;
+  document.getElementById('mMeta').textContent = `${job.CustomerName||'—'} · ${job.JobDate}`;
+  const st = document.getElementById('mStatus');
+  st.textContent = job.VarianceStatus;
+  st.className = `text-[11px] font-medium px-2 py-0.5 rounded-full ${badge[job.VarianceStatus]}`;
+
+  document.getElementById('mSummary').innerHTML = [
+    {l:'Standard cost', v:fmtR.format(job.Standard_Cost)},
+    {l:'Actual issued', v:fmtR.format(job.Actual_Cost)},
+    {l:'Variance', v:(job.Cost_Variance>=0?'+':'')+fmtR.format(job.Cost_Variance), cls: vCls(job.Cost_Variance)},
+    {l:'Materials', v:fmtNum.format(job.materials.length)},
+  ].map(c => `
+    <div class="rounded-xl bg-ink-100 dark:bg-slate-900 p-3">
+      <div class="text-[11px] text-ink-500 dark:text-slate-400">${c.l}</div>
+      <div class="text-lg font-semibold num ${c.cls||''}">${c.v}</div>
+    </div>`).join('');
+
+  const mats = [...job.materials].sort((a,b)=> Math.abs(b.Variance) - Math.abs(a.Variance));
+  document.getElementById('mBody').innerHTML = mats.map(m => `
+    <tr>
+      <td class="px-4 py-2.5 font-medium">${m.Material}</td>
+      <td class="px-4 py-2.5 text-right num">${fmtR2.format(m.Standard_Cost)}</td>
+      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400">${fmtR2.format(m.Despatch_Cost)}</td>
+      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400">${fmtR2.format(m.Return_Cost)}</td>
+      <td class="px-4 py-2.5 text-right num font-medium">${fmtR2.format(m.Actual_Cost)}</td>
+      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400">${fmtNum.format(m.Actual_Units)}</td>
+      <td class="px-4 py-2.5 text-right num ${vCls(m.Variance)}">${m.Variance>0?'+':''}${fmtR2.format(m.Variance)}</td>
+      <td class="px-4 py-2.5 text-center">
+        <span class="text-[11px] font-medium px-2 py-0.5 rounded-full ${badge[m.VarianceStatus]}">${m.VarianceStatus}</span>
+      </td>
+    </tr>`).join('');
+
+  const modal = document.getElementById('modal');
+  modal.classList.remove('hidden');
+  document.body.style.overflow='hidden';
+
+  const ink = chartInk();
+  const labels = mats.map(m => m.Material);
+  const data   = mats.map(m => Math.round(m.Variance));
+  const colors = data.map(v => v < 0 ? '#e11d48' : v > 0 ? '#059669' : '#94a3b8');
+  if(modalChart) modalChart.destroy();
+  modalChart = new Chart(document.getElementById('mChart'), {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Variance (std − actual), R', data, backgroundColor:colors, borderRadius:4, maxBarThickness:34 }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{ label:(c)=>{
+          const m = mats[c.dataIndex];
+          return `${c.parsed.y>=0?'+':''}${fmtR.format(c.parsed.y)} (${m.VarianceStatus})`;
+        }}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{color:ink.tick,maxRotation:45,minRotation:0,autoSkip:false,font:{size:11}}},
+        y:{grid:{color:ink.grid},ticks:{color:ink.tick,font:{size:11},callback:v=>'R'+v},
+           title:{display:true,text:'Under-issued  ↑   ↓  Over-issued',font:{size:10},color:ink.title}}
+      }
+    }
+  });
+  lucide.createIcons();
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.add('hidden');
+  document.body.style.overflow='';
+  currentJob = null;
+  if(modalChart){ modalChart.destroy(); modalChart=null; }
+}
+
+function refresh(){
+  const jobs = getFiltered();
+  renderCards(jobs);
+  renderTable(jobs);
+  lucide.createIcons();
+}
+
+['dateFrom','dateTo','search'].forEach(id =>
+  document.getElementById(id).addEventListener('input', refresh));
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('dateFrom').value='';
+  document.getElementById('dateTo').value='';
+  document.getElementById('search').value='';
+  refresh();
+});
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('modalBackdrop').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+document.querySelectorAll('#themeSeg button').forEach(b =>
+  b.addEventListener('click', () => { localStorage.setItem(THEME_KEY, b.dataset.t); applyTheme(); }));
+
+(function initDates(){
+  const dates = ALL_JOBS.map(j=>j.JobDate).filter(Boolean).sort();
+  if(dates.length){
+    document.getElementById('dateFrom').value = dates[0];
+    document.getElementById('dateTo').value   = dates[dates.length-1];
+  }
+})();
+
+applyTheme();
+refresh();
+</script>
+</body>
+</html>
