@@ -81,19 +81,33 @@ Actual AS (
     WHERE s.MovementType IN ('Despatch','Return')
       AND s.fJobNumber IN (SELECT fJobNumber FROM JobSet)
     GROUP BY s.fJobNumber, LTRIM(RTRIM(s.CostType))
+),
+-- Standard required UNITS per (job, cost type) from the BOM requirement view.
+-- v_RMA_CurrentRequired_NoFilter covers all job statuses (incl. Complete (No WIP));
+-- RequiredUnits is the total requirement, keyed on CostType (matches Actual_Units).
+StdUnits AS (
+    SELECT
+        r.JobNumber              AS JobNumber,
+        LTRIM(RTRIM(r.CostType)) AS Material,
+        SUM(r.RequiredUnits)     AS Standard_Units
+    FROM Reporting.v_RMA_CurrentRequired_NoFilter AS r
+    WHERE r.JobNumber IN (SELECT fJobNumber FROM JobSet)
+    GROUP BY r.JobNumber, LTRIM(RTRIM(r.CostType))
 )
 SELECT
-    COALESCE(st.JobNumber, ac.JobNumber)  AS JobNumber,
+    COALESCE(st.JobNumber, ac.JobNumber, su.JobNumber)  AS JobNumber,
     h.JobDate,
     h.CustomerName,
     h.JobDescription,
-    COALESCE(st.Material, ac.Material)     AS Material,
+    COALESCE(st.Material, ac.Material, su.Material)      AS Material,
     ISNULL(st.Standard_Cost, 0)            AS Standard_Cost,
     ISNULL(ac.Despatch_Cost, 0)            AS Despatch_Cost,
     ISNULL(ac.Return_Cost, 0)              AS Return_Cost,
     ISNULL(ac.Actual_Cost, 0)              AS Actual_Cost,
+    ISNULL(su.Standard_Units, 0)           AS Standard_Units,
     ISNULL(ac.Actual_Units, 0)             AS Actual_Units,
-    ISNULL(st.Standard_Cost, 0) - ISNULL(ac.Actual_Cost, 0) AS Variance,
+    ISNULL(st.Standard_Cost, 0) - ISNULL(ac.Actual_Cost, 0)   AS Variance,
+    ISNULL(su.Standard_Units, 0) - ISNULL(ac.Actual_Units, 0) AS Variance_Units,
     CASE
         WHEN ISNULL(ac.Actual_Cost,0) > ISNULL(st.Standard_Cost,0) * 1.02 THEN 'Over-issued'
         WHEN ISNULL(ac.Actual_Cost,0) < ISNULL(st.Standard_Cost,0) * 0.98 THEN 'Under-issued'
@@ -102,6 +116,9 @@ SELECT
 FROM Standard AS st
 FULL OUTER JOIN Actual AS ac
     ON ac.JobNumber = st.JobNumber AND ac.Material = st.Material
+FULL OUTER JOIN StdUnits AS su
+    ON su.JobNumber = COALESCE(st.JobNumber, ac.JobNumber)
+   AND su.Material  = COALESCE(st.Material, ac.Material)
 LEFT JOIN Header AS h
-    ON h.JobNumber = COALESCE(st.JobNumber, ac.JobNumber)
+    ON h.JobNumber = COALESCE(st.JobNumber, ac.JobNumber, su.JobNumber)
 ORDER BY JobNumber, Material;

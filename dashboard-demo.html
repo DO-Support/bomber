@@ -148,9 +148,15 @@
         <div class="p-6 overflow-y-auto space-y-6">
           <div id="mSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
           <div>
-            <h4 class="text-xs font-semibold text-ink-500 dark:text-slate-400 uppercase tracking-wide mb-2">Variance per material (Rand)</h4>
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-semibold text-ink-500 dark:text-slate-400 uppercase tracking-wide">Variance per material</h4>
+              <div id="measureSeg" role="group" aria-label="Measure" class="inline-flex items-center h-7 rounded-lg border border-ink-200 dark:border-slate-700 overflow-hidden text-ink-500">
+                <button data-m="rand" class="theme-btn px-3 h-full text-xs font-medium" title="Rand">Rand</button>
+                <button data-m="units" class="theme-btn px-3 h-full text-xs font-medium" title="Units">Units</button>
+              </div>
+            </div>
             <div class="rounded-xl border border-ink-200 dark:border-slate-700 p-3" style="height:280px;position:relative">
-              <canvas id="mChart" role="img" aria-label="Bar chart of Rand variance per material for the selected job"></canvas>
+              <canvas id="mChart" role="img" aria-label="Bar chart of variance per material for the selected job"></canvas>
             </div>
           </div>
           <div>
@@ -161,11 +167,11 @@
                   <tr>
                     <th class="text-left font-semibold px-4 py-2.5">Material (cost type)</th>
                     <th class="text-right font-semibold px-4 py-2.5">Standard R</th>
-                    <th class="text-right font-semibold px-4 py-2.5">Despatch R</th>
-                    <th class="text-right font-semibold px-4 py-2.5">Return R</th>
                     <th class="text-right font-semibold px-4 py-2.5">Actual R</th>
-                    <th class="text-right font-semibold px-4 py-2.5">Actual units</th>
                     <th class="text-right font-semibold px-4 py-2.5">Variance R</th>
+                    <th class="text-right font-semibold px-4 py-2.5 border-l border-ink-200 dark:border-slate-700">Std units</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Actual units</th>
+                    <th class="text-right font-semibold px-4 py-2.5">Var units</th>
                     <th class="text-center font-semibold px-4 py-2.5">Status</th>
                   </tr>
                 </thead>
@@ -182,7 +188,7 @@
 /* Live iSync data injected at build time by jobvariance.render_html.
    One record per (job, material/cost-type). See the module docstring for the
    standard-vs-actual definition. */
-const RAW_DATA = [{"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Fabric", "Standard_Cost": 89000.0, "Despatch_Cost": 92100.0, "Return_Cost": 900.0, "Actual_Cost": 91200.0, "Actual_Units": 3120.0, "Variance": -2200.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Zips", "Standard_Cost": 10600.0, "Despatch_Cost": 10820.0, "Return_Cost": 0.0, "Actual_Cost": 10820.0, "Actual_Units": 3050.0, "Variance": -220.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Labels", "Standard_Cost": 5800.0, "Despatch_Cost": 5820.0, "Return_Cost": 0.0, "Actual_Cost": 5820.0, "Actual_Units": 10600.0, "Variance": -20.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Cotton", "Standard_Cost": 3100.0, "Despatch_Cost": 3040.0, "Return_Cost": 0.0, "Actual_Cost": 3040.0, "Actual_Units": 1500.0, "Variance": 60.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Fabric", "Standard_Cost": 132000.0, "Despatch_Cost": 121500.0, "Return_Cost": 2400.0, "Actual_Cost": 119100.0, "Actual_Units": 3600.0, "Variance": 12900.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Trims Press Studs", "Standard_Cost": 4200.0, "Despatch_Cost": 3980.0, "Return_Cost": 0.0, "Actual_Cost": 3980.0, "Actual_Units": 6100.0, "Variance": 220.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Trims Tape", "Standard_Cost": 6900.0, "Despatch_Cost": 6120.0, "Return_Cost": 0.0, "Actual_Cost": 6120.0, "Actual_Units": 3300.0, "Variance": 780.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Fabric", "Standard_Cost": 240000.0, "Despatch_Cost": 268000.0, "Return_Cost": 3000.0, "Actual_Cost": 265000.0, "Actual_Units": 7200.0, "Variance": -25000.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Zips", "Standard_Cost": 18000.0, "Despatch_Cost": 21500.0, "Return_Cost": 0.0, "Actual_Cost": 21500.0, "Actual_Units": 5200.0, "Variance": -3500.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Buttons", "Standard_Cost": 1600.0, "Despatch_Cost": 1720.0, "Return_Cost": 0.0, "Actual_Cost": 1720.0, "Actual_Units": 1500.0, "Variance": -120.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Sticker and Swing Tags", "Standard_Cost": 165.0, "Despatch_Cost": 165.0, "Return_Cost": 0.0, "Actual_Cost": 165.0, "Actual_Units": 1500.0, "Variance": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Fabric", "Standard_Cost": 31500.0, "Despatch_Cost": 35200.0, "Return_Cost": 300.0, "Actual_Cost": 34900.0, "Actual_Units": 780.0, "Variance": -3400.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Trims Cotton", "Standard_Cost": 2000.0, "Despatch_Cost": 2180.0, "Return_Cost": 0.0, "Actual_Cost": 2180.0, "Actual_Units": 900.0, "Variance": -180.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Trims Buttons", "Standard_Cost": 6000.0, "Despatch_Cost": 7000.0, "Return_Cost": 0.0, "Actual_Cost": 7000.0, "Actual_Units": 1400.0, "Variance": -1000.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Customer Supplied", "Standard_Cost": 0.0, "Despatch_Cost": 1800.0, "Return_Cost": 0.0, "Actual_Cost": 1800.0, "Actual_Units": 60.0, "Variance": -1800.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Fabric", "Standard_Cost": 45000.0, "Despatch_Cost": 41200.0, "Return_Cost": 500.0, "Actual_Cost": 40700.0, "Actual_Units": 1400.0, "Variance": 4300.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Trims Elastic", "Standard_Cost": 4500.0, "Despatch_Cost": 4180.0, "Return_Cost": 0.0, "Actual_Cost": 4180.0, "Actual_Units": 640.0, "Variance": 320.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Trims Tape", "Standard_Cost": 9000.0, "Despatch_Cost": 8600.0, "Return_Cost": 320.0, "Actual_Cost": 8280.0, "Actual_Units": 3100.0, "Variance": 720.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Fabric", "Standard_Cost": 71500.0, "Despatch_Cost": 71600.0, "Return_Cost": 100.0, "Actual_Cost": 71500.0, "Actual_Units": 1100.0, "Variance": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Trims Zips", "Standard_Cost": 10500.0, "Despatch_Cost": 10520.0, "Return_Cost": 0.0, "Actual_Cost": 10520.0, "Actual_Units": 3400.0, "Variance": -20.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Trims Packaging", "Standard_Cost": 4200.0, "Despatch_Cost": 4180.0, "Return_Cost": 0.0, "Actual_Cost": 4180.0, "Actual_Units": 1500.0, "Variance": 20.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Fabric", "Standard_Cost": 110000.0, "Despatch_Cost": 127500.0, "Return_Cost": 1500.0, "Actual_Cost": 126000.0, "Actual_Units": 2600.0, "Variance": -16000.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Trims Drawcord", "Standard_Cost": 3000.0, "Despatch_Cost": 3320.0, "Return_Cost": 0.0, "Actual_Cost": 3320.0, "Actual_Units": 900.0, "Variance": -320.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Trims Buttons", "Standard_Cost": 12000.0, "Despatch_Cost": 12800.0, "Return_Cost": 0.0, "Actual_Cost": 12800.0, "Actual_Units": 6400.0, "Variance": -800.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Fabric", "Standard_Cost": 72000.0, "Despatch_Cost": 66500.0, "Return_Cost": 800.0, "Actual_Cost": 65700.0, "Actual_Units": 1700.0, "Variance": 6300.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Trims Cotton", "Standard_Cost": 3000.0, "Despatch_Cost": 2900.0, "Return_Cost": 0.0, "Actual_Cost": 2900.0, "Actual_Units": 1450.0, "Variance": 100.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Trims Labels", "Standard_Cost": 8000.0, "Despatch_Cost": 7900.0, "Return_Cost": 0.0, "Actual_Cost": 7900.0, "Actual_Units": 8000.0, "Variance": 100.0, "VarianceStatus": "On-track"}];
+const RAW_DATA = [{"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Fabric", "Standard_Cost": 89000.0, "Despatch_Cost": 92100.0, "Return_Cost": 900.0, "Actual_Cost": 91200.0, "Standard_Units": 3050.0, "Actual_Units": 3120.0, "Variance": -2200.0, "Variance_Units": -70.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Zips", "Standard_Cost": 10600.0, "Despatch_Cost": 10820.0, "Return_Cost": 0.0, "Actual_Cost": 10820.0, "Standard_Units": 3050.0, "Actual_Units": 3050.0, "Variance": -220.0, "Variance_Units": 0.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Labels", "Standard_Cost": 5800.0, "Despatch_Cost": 5820.0, "Return_Cost": 0.0, "Actual_Cost": 5820.0, "Standard_Units": 10600.0, "Actual_Units": 10600.0, "Variance": -20.0, "Variance_Units": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090001", "JobDate": "2026-06-02", "CustomerName": "Acme Workwear", "JobDescription": "Hi-vis two-piece conti suit", "Material": "Trims Cotton", "Standard_Cost": 3100.0, "Despatch_Cost": 3040.0, "Return_Cost": 0.0, "Actual_Cost": 3040.0, "Standard_Units": 1520.0, "Actual_Units": 1500.0, "Variance": 60.0, "Variance_Units": 20.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Fabric", "Standard_Cost": 132000.0, "Despatch_Cost": 121500.0, "Return_Cost": 2400.0, "Actual_Cost": 119100.0, "Standard_Units": 3960.0, "Actual_Units": 3600.0, "Variance": 12900.0, "Variance_Units": 360.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Trims Press Studs", "Standard_Cost": 4200.0, "Despatch_Cost": 3980.0, "Return_Cost": 0.0, "Actual_Cost": 3980.0, "Standard_Units": 6100.0, "Actual_Units": 6100.0, "Variance": 220.0, "Variance_Units": 0.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090002", "JobDate": "2026-06-05", "CustomerName": "Sample Client A", "JobDescription": "Flame-retardant bib brace", "Material": "Trims Tape", "Standard_Cost": 6900.0, "Despatch_Cost": 6120.0, "Return_Cost": 0.0, "Actual_Cost": 6120.0, "Standard_Units": 3300.0, "Actual_Units": 3300.0, "Variance": 780.0, "Variance_Units": 0.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Fabric", "Standard_Cost": 240000.0, "Despatch_Cost": 268000.0, "Return_Cost": 3000.0, "Actual_Cost": 265000.0, "Standard_Units": 6800.0, "Actual_Units": 7200.0, "Variance": -25000.0, "Variance_Units": -400.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Zips", "Standard_Cost": 18000.0, "Despatch_Cost": 21500.0, "Return_Cost": 0.0, "Actual_Cost": 21500.0, "Standard_Units": 4900.0, "Actual_Units": 5200.0, "Variance": -3500.0, "Variance_Units": -300.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Buttons", "Standard_Cost": 1600.0, "Despatch_Cost": 1720.0, "Return_Cost": 0.0, "Actual_Cost": 1720.0, "Standard_Units": 1500.0, "Actual_Units": 1500.0, "Variance": -120.0, "Variance_Units": 0.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090003", "JobDate": "2026-06-11", "CustomerName": "Demo Mining Co", "JobDescription": "Arc-flash coverall 40cal", "Material": "Trims Sticker and Swing Tags", "Standard_Cost": 165.0, "Despatch_Cost": 165.0, "Return_Cost": 0.0, "Actual_Cost": 165.0, "Standard_Units": 1500.0, "Actual_Units": 1500.0, "Variance": 0.0, "Variance_Units": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Fabric", "Standard_Cost": 31500.0, "Despatch_Cost": 35200.0, "Return_Cost": 300.0, "Actual_Cost": 34900.0, "Standard_Units": 720.0, "Actual_Units": 780.0, "Variance": -3400.0, "Variance_Units": -60.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Trims Cotton", "Standard_Cost": 2000.0, "Despatch_Cost": 2180.0, "Return_Cost": 0.0, "Actual_Cost": 2180.0, "Standard_Units": 900.0, "Actual_Units": 900.0, "Variance": -180.0, "Variance_Units": 0.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Trims Buttons", "Standard_Cost": 6000.0, "Despatch_Cost": 7000.0, "Return_Cost": 0.0, "Actual_Cost": 7000.0, "Standard_Units": 1400.0, "Actual_Units": 1400.0, "Variance": -1000.0, "Variance_Units": 0.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090004", "JobDate": "2026-06-18", "CustomerName": "Acme Workwear", "JobDescription": "Chef jacket long-sleeve", "Material": "Customer Supplied", "Standard_Cost": 0.0, "Despatch_Cost": 1800.0, "Return_Cost": 0.0, "Actual_Cost": 1800.0, "Standard_Units": 0.0, "Actual_Units": 60.0, "Variance": -1800.0, "Variance_Units": -60.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Fabric", "Standard_Cost": 45000.0, "Despatch_Cost": 41200.0, "Return_Cost": 500.0, "Actual_Cost": 40700.0, "Standard_Units": 1500.0, "Actual_Units": 1400.0, "Variance": 4300.0, "Variance_Units": 100.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Trims Elastic", "Standard_Cost": 4500.0, "Despatch_Cost": 4180.0, "Return_Cost": 0.0, "Actual_Cost": 4180.0, "Standard_Units": 640.0, "Actual_Units": 640.0, "Variance": 320.0, "Variance_Units": 0.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090005", "JobDate": "2026-06-24", "CustomerName": "Sample Client B", "JobDescription": "Acid-resistant apron", "Material": "Trims Tape", "Standard_Cost": 9000.0, "Despatch_Cost": 8600.0, "Return_Cost": 320.0, "Actual_Cost": 8280.0, "Standard_Units": 3100.0, "Actual_Units": 3100.0, "Variance": 720.0, "Variance_Units": 0.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Fabric", "Standard_Cost": 71500.0, "Despatch_Cost": 71600.0, "Return_Cost": 100.0, "Actual_Cost": 71500.0, "Standard_Units": 1100.0, "Actual_Units": 1100.0, "Variance": 0.0, "Variance_Units": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Trims Zips", "Standard_Cost": 10500.0, "Despatch_Cost": 10520.0, "Return_Cost": 0.0, "Actual_Cost": 10520.0, "Standard_Units": 3400.0, "Actual_Units": 3400.0, "Variance": -20.0, "Variance_Units": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090006", "JobDate": "2026-07-01", "CustomerName": "Demo Mining Co", "JobDescription": "Winter lined jacket", "Material": "Trims Packaging", "Standard_Cost": 4200.0, "Despatch_Cost": 4180.0, "Return_Cost": 0.0, "Actual_Cost": 4180.0, "Standard_Units": 1500.0, "Actual_Units": 1500.0, "Variance": 20.0, "Variance_Units": 0.0, "VarianceStatus": "On-track"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Fabric", "Standard_Cost": 110000.0, "Despatch_Cost": 127500.0, "Return_Cost": 1500.0, "Actual_Cost": 126000.0, "Standard_Units": 2400.0, "Actual_Units": 2600.0, "Variance": -16000.0, "Variance_Units": -200.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Trims Drawcord", "Standard_Cost": 3000.0, "Despatch_Cost": 3320.0, "Return_Cost": 0.0, "Actual_Cost": 3320.0, "Standard_Units": 900.0, "Actual_Units": 900.0, "Variance": -320.0, "Variance_Units": 0.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090007", "JobDate": "2026-07-08", "CustomerName": "Sample Client A", "JobDescription": "Welding leather spats", "Material": "Trims Buttons", "Standard_Cost": 12000.0, "Despatch_Cost": 12800.0, "Return_Cost": 0.0, "Actual_Cost": 12800.0, "Standard_Units": 6400.0, "Actual_Units": 6400.0, "Variance": -800.0, "Variance_Units": 0.0, "VarianceStatus": "Over-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Fabric", "Standard_Cost": 72000.0, "Despatch_Cost": 66500.0, "Return_Cost": 800.0, "Actual_Cost": 65700.0, "Standard_Units": 1800.0, "Actual_Units": 1700.0, "Variance": 6300.0, "Variance_Units": 100.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Trims Cotton", "Standard_Cost": 3000.0, "Despatch_Cost": 2900.0, "Return_Cost": 0.0, "Actual_Cost": 2900.0, "Standard_Units": 1450.0, "Actual_Units": 1450.0, "Variance": 100.0, "Variance_Units": 0.0, "VarianceStatus": "Under-issued"}, {"JobNumber": "DO-090008", "JobDate": "2026-07-13", "CustomerName": "Acme Workwear", "JobDescription": "Standard poly-cotton shirt", "Material": "Trims Labels", "Standard_Cost": 8000.0, "Despatch_Cost": 7900.0, "Return_Cost": 0.0, "Actual_Cost": 7900.0, "Standard_Units": 8000.0, "Actual_Units": 8000.0, "Variance": 100.0, "Variance_Units": 0.0, "VarianceStatus": "On-track"}];
 
 const fmtR   = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0});
 const fmtR2  = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:2});
@@ -242,6 +248,7 @@ function buildJobs(rows){
 const ALL_JOBS = buildJobs(RAW_DATA);
 let modalChart = null;
 let currentJob = null;
+let modalMeasure = 'rand';
 
 const badge = {
   'On-track':    'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
@@ -353,49 +360,64 @@ function openModal(job){
     </div>`).join('');
 
   const mats = [...job.materials].sort((a,b)=> Math.abs(b.Variance) - Math.abs(a.Variance));
-  document.getElementById('mBody').innerHTML = mats.map(m => `
+  document.getElementById('mBody').innerHTML = mats.map(m => {
+    const vu = m.Variance_Units || 0;
+    const hasStd = (m.Standard_Units || 0) !== 0 || m.Actual_Units !== 0;
+    return `
     <tr>
       <td class="px-4 py-2.5 font-medium">${m.Material}</td>
       <td class="px-4 py-2.5 text-right num">${fmtR2.format(m.Standard_Cost)}</td>
-      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400">${fmtR2.format(m.Despatch_Cost)}</td>
-      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400">${fmtR2.format(m.Return_Cost)}</td>
       <td class="px-4 py-2.5 text-right num font-medium">${fmtR2.format(m.Actual_Cost)}</td>
-      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400">${fmtNum.format(m.Actual_Units)}</td>
       <td class="px-4 py-2.5 text-right num ${vCls(m.Variance)}">${m.Variance>0?'+':''}${fmtR2.format(m.Variance)}</td>
+      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400 border-l border-ink-200 dark:border-slate-700">${fmtNum.format(m.Standard_Units||0)}</td>
+      <td class="px-4 py-2.5 text-right num text-ink-500 dark:text-slate-400">${fmtNum.format(m.Actual_Units)}</td>
+      <td class="px-4 py-2.5 text-right num ${hasStd?vCls(vu):'text-ink-400 dark:text-slate-500'}">${hasStd?(vu>0?'+':'')+fmtNum.format(vu):'—'}</td>
       <td class="px-4 py-2.5 text-center">
         <span class="text-[11px] font-medium px-2 py-0.5 rounded-full ${badge[m.VarianceStatus]}">${m.VarianceStatus}</span>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   const modal = document.getElementById('modal');
   modal.classList.remove('hidden');
   document.body.style.overflow='hidden';
 
+  document.querySelectorAll('#measureSeg button').forEach(b =>
+    b.classList.toggle('seg-on', b.dataset.m === modalMeasure));
+  drawModalChart();
+  lucide.createIcons();
+}
+
+function drawModalChart(){
+  if(!currentJob) return;
+  const mats = [...currentJob.materials].sort((a,b)=> Math.abs(b.Variance) - Math.abs(a.Variance));
+  const isUnits = modalMeasure === 'units';
   const ink = chartInk();
   const labels = mats.map(m => m.Material);
-  const data   = mats.map(m => Math.round(m.Variance));
+  const data   = mats.map(m => Math.round(isUnits ? (m.Variance_Units||0) : m.Variance));
   const colors = data.map(v => v < 0 ? '#e11d48' : v > 0 ? '#059669' : '#94a3b8');
   if(modalChart) modalChart.destroy();
   modalChart = new Chart(document.getElementById('mChart'), {
     type:'bar',
-    data:{ labels, datasets:[{ label:'Variance (std − actual), R', data, backgroundColor:colors, borderRadius:4, maxBarThickness:34 }]},
+    data:{ labels, datasets:[{ label: isUnits ? 'Variance (std − actual), units' : 'Variance (std − actual), R',
+                               data, backgroundColor:colors, borderRadius:4, maxBarThickness:34 }]},
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
         tooltip:{callbacks:{ label:(c)=>{
-          const m = mats[c.dataIndex];
-          return `${c.parsed.y>=0?'+':''}${fmtR.format(c.parsed.y)} (${m.VarianceStatus})`;
+          const m = mats[c.dataIndex], v = c.parsed.y;
+          return isUnits ? `${v>=0?'+':''}${fmtNum.format(v)} units (${m.VarianceStatus})`
+                         : `${v>=0?'+':''}${fmtR.format(v)} (${m.VarianceStatus})`;
         }}}
       },
       scales:{
         x:{grid:{display:false},ticks:{color:ink.tick,maxRotation:45,minRotation:0,autoSkip:false,font:{size:11}}},
-        y:{grid:{color:ink.grid},ticks:{color:ink.tick,font:{size:11},callback:v=>'R'+v},
+        y:{grid:{color:ink.grid},ticks:{color:ink.tick,font:{size:11},callback:v=> isUnits ? v : 'R'+v},
            title:{display:true,text:'Under-issued  ↑   ↓  Over-issued',font:{size:10},color:ink.title}}
       }
     }
   });
-  lucide.createIcons();
 }
 
 function closeModal(){
@@ -425,6 +447,12 @@ document.getElementById('modalBackdrop').addEventListener('click', closeModal);
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 document.querySelectorAll('#themeSeg button').forEach(b =>
   b.addEventListener('click', () => { localStorage.setItem(THEME_KEY, b.dataset.t); applyTheme(); }));
+document.querySelectorAll('#measureSeg button').forEach(b =>
+  b.addEventListener('click', () => {
+    modalMeasure = b.dataset.m;
+    document.querySelectorAll('#measureSeg button').forEach(x => x.classList.toggle('seg-on', x===b));
+    drawModalChart();
+  }));
 
 (function initDates(){
   const dates = ALL_JOBS.map(j=>j.JobDate).filter(Boolean).sort();

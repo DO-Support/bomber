@@ -114,6 +114,21 @@ GROUP BY s.fJobNumber, LTRIM(RTRIM(s.CostType))
 HAVING -SUM(CASE WHEN s.MovementType IN ('Despatch','Return') THEN s.MovementValue ELSE 0 END) <> 0
 """
 
+# Standard required UNITS per (job, cost type) from the BOM requirement view. Grain is
+# per cost sub type; we roll up to CostType to match both the Rand model's material key
+# and vStockMovements.CostType (the actual-units key). RequiredUnits is the total
+# requirement (not net-remaining). Covers all job statuses, incl. Complete (No WIP).
+_STD_UNITS_SQL = f"""
+SELECT
+    r.JobNumber                        AS JobNumber,
+    LTRIM(RTRIM(r.CostType))          AS Material,
+    SUM(r.RequiredUnits)              AS Standard_Units
+FROM Reporting.v_RMA_CurrentRequired_NoFilter AS r
+WHERE r.JobNumber IN ({_JOB_SET})
+GROUP BY r.JobNumber, LTRIM(RTRIM(r.CostType))
+HAVING SUM(r.RequiredUnits) <> 0
+"""
+
 
 def _status(standard: float, actual: float) -> str:
     if standard == 0:
@@ -137,12 +152,16 @@ def fetch_job_variance(engine, date_from: date, date_to: date) -> pd.DataFrame:
     params = {"date_from": date_from, "date_to": date_to}
     std = read_sql(engine, _standard_sql(), params)
     act = read_sql(engine, _ACTUAL_SQL, params)
+    units = read_sql(engine, _STD_UNITS_SQL, params)
     hdr = read_sql(engine, _HEADER_SQL, params)
 
     merged = std.merge(act, on=["JobNumber", "Material"], how="outer")
-    for col in ("Standard_Cost", "Despatch_Cost", "Return_Cost", "Actual_Cost", "Actual_Units"):
+    merged = merged.merge(units, on=["JobNumber", "Material"], how="outer")
+    for col in ("Standard_Cost", "Despatch_Cost", "Return_Cost", "Actual_Cost",
+                "Actual_Units", "Standard_Units"):
         merged[col] = pd.to_numeric(merged.get(col), errors="coerce").fillna(0.0)
     merged["Variance"] = merged["Standard_Cost"] - merged["Actual_Cost"]
+    merged["Variance_Units"] = merged["Standard_Units"] - merged["Actual_Units"]
 
     merged = merged.merge(hdr, on="JobNumber", how="left")
     merged["JobDate"] = pd.to_datetime(merged["JobDate"]).dt.strftime("%Y-%m-%d")
@@ -169,8 +188,10 @@ def build_payload(df: pd.DataFrame) -> list[dict]:
             "Despatch_Cost": round(float(r.Despatch_Cost), 2),
             "Return_Cost": round(float(r.Return_Cost), 2),
             "Actual_Cost": round(float(r.Actual_Cost), 2),
+            "Standard_Units": round(float(r.Standard_Units), 1),
             "Actual_Units": round(float(r.Actual_Units), 1),
             "Variance": round(float(r.Variance), 2),
+            "Variance_Units": round(float(r.Variance_Units), 1),
             "VarianceStatus": r.VarianceStatus,
         })
     return records

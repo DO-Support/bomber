@@ -21,10 +21,19 @@ mock data, no database needed.
 | **Actual** (what was issued) | `Reporting.vStockMovements` | `Despatch − Return`, netted. Quantities are signed (Despatch negative, Return positive), so actual issued = `−SUM(MovementValue)`. |
 
 Both sides join on the cost sub type (FG column name == RM `CostType`), compared in
-**Rand** — the only common denominator, since the standard side has no raw-material
-unit quantities. `Variance = Standard − Actual` (positive = under-issued/saved,
-negative = over-issued). Labour/overhead sub types (CMT, Overheads, Outwork) are
-excluded — they are never issued from RM stock.
+**Rand**. `Variance = Standard − Actual` (positive = under-issued/saved, negative =
+over-issued). Labour/overhead sub types (CMT, Overheads, Outwork) are excluded — they
+are never issued from RM stock.
+
+### Units variance
+
+Alongside Rand, a **units** variance is available per cost type. Standard required
+units come from `Reporting.v_RMA_CurrentRequired_NoFilter` (`RequiredUnits`, total BOM
+requirement, covering all job statuses incl. `Complete (No WIP)`), joined to actual
+issued units from `vStockMovements` on `JobNumber + CostType`. The drilldown shows
+Std / Actual / Variance units per cost type plus a Rand/Units toggle on the variance
+chart. Job-level cards and the main table stay in Rand, since units can't be summed
+across cost types (metres + each).
 
 ### Date handling (important)
 

@@ -11,6 +11,9 @@ __pycache__/
 venv/
 *.egg-info/
 
+# Local session / agent dir
+.claude/
+
 # OS / editor
 Thumbs.db
 .DS_Store
