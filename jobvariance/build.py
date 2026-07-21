@@ -201,13 +201,16 @@ def _template_path() -> Path:
     return Path(__file__).with_name("templates") / "job_variance.html"
 
 
-def render_html(records: list[dict], title: str, subtitle: str) -> str:
+def render_html(records: list[dict], title: str, subtitle: str, live: bool = False) -> str:
+    """Render the dashboard. Static build embeds `records`; live mode (server)
+    starts empty and fetches from /data on date change."""
     template = _template_path().read_text(encoding="utf-8")
     return (
         template
         .replace("__TITLE__", title)
         .replace("__SUBTITLE__", subtitle)
-        .replace('"__DATA__"', json.dumps(records))
+        .replace("__LIVE__", "true" if live else "false")
+        .replace('"__DATA__"', "[]" if live else json.dumps(records))
     )
 
 

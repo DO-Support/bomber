@@ -48,24 +48,41 @@ compares a partial standard to a full actual and reports huge phantom variances.
 ```bash
 pip install -r requirements.txt
 cp .env.example .env          # fill in MSSQL_* credentials (read-only login)
+```
 
-# Live build:
+**Live server — interactive date selection (recommended):**
+```bash
+python -m jobvariance.serve                 # opens http://127.0.0.1:8765/
+```
+Pick any start/end dates in the page and it queries iSync on demand and redraws.
+Localhost-only; needs `.env`. Add `--port N` / `--no-open` as needed.
+
+**Static single-file build** (shareable, data frozen at build time):
+```bash
 python -m jobvariance.build --from 2026-05-01 --to 2026-07-16 --out dashboard.html
+```
 
-# Mock demo (no DB):
+**Mock demo (no DB):**
+```bash
 python -m jobvariance.build --mock --out dashboard-demo.html
 ```
 
 The raw SQL is also provided standalone in [`sql/job_material_variance.sql`](sql/job_material_variance.sql).
 
+> **Note on live-query latency:** each date change runs a job-set scan over the
+> production history, so a query currently takes ~20-30 s (the page shows a loading
+> state meanwhile). Fine for occasional range changes; can be optimised later with a
+> temp-table job set if snappier interaction is needed.
+
 ## Layout
 
 ```
 jobvariance/
-  build.py                    queries + payload builder + render + CLI
+  build.py                    queries + payload builder + render + static-build CLI
+  serve.py                    local live server (on-demand date queries)
   db.py                       read-only MS SQL connection (SQLAlchemy + pyodbc)
   mock.py                     bundled demo dataset (no real data)
-  templates/job_variance.html dashboard template (__DATA__ placeholder)
+  templates/job_variance.html dashboard template (__DATA__ / __LIVE__ placeholders)
 sql/job_material_variance.sql standalone documented query
 dashboard-demo.html           committed demo (mock data)
 ```

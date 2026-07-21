@@ -185,10 +185,11 @@
   </div>
 
 <script>
-/* Live iSync data injected at build time by jobvariance.render_html.
-   One record per (job, material/cost-type). See the module docstring for the
-   standard-vs-actual definition. */
-const RAW_DATA = "__DATA__";
+/* Data source. In a static build, records are injected here at build time. In
+   LIVE mode (jobvariance.serve), RAW_DATA starts empty and is fetched from
+   /data?from=&to= whenever the date pickers change. */
+const LIVE = __LIVE__;
+let RAW_DATA = "__DATA__";
 
 const fmtR   = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0});
 const fmtR2  = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:2});
@@ -245,7 +246,7 @@ function buildJobs(rows){
   }));
 }
 
-const ALL_JOBS = buildJobs(RAW_DATA);
+let ALL_JOBS = buildJobs(RAW_DATA);
 let modalChart = null;
 let currentJob = null;
 let modalMeasure = 'rand';
@@ -434,13 +435,44 @@ function refresh(){
   lucide.createIcons();
 }
 
-['dateFrom','dateTo','search'].forEach(id =>
-  document.getElementById(id).addEventListener('input', refresh));
+/* ---------- live mode: fetch data for the chosen range from the server ---------- */
+function setLoading(b){
+  document.getElementById('dateFrom').disabled = b;
+  document.getElementById('dateTo').disabled = b;
+  if(b) document.getElementById('tableMeta').textContent = 'Loading…';
+}
+async function loadData(){
+  const from = document.getElementById('dateFrom').value;
+  const to   = document.getElementById('dateTo').value;
+  if(!from || !to) return;
+  setLoading(true);
+  try{
+    const r = await fetch(`/data?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    RAW_DATA = await r.json();
+    ALL_JOBS = buildJobs(RAW_DATA);
+    refresh();
+  }catch(e){
+    document.getElementById('tableMeta').textContent = 'Error loading data: ' + e.message;
+  }finally{ setLoading(false); }
+}
+let liveTimer;
+function onDateChange(){
+  if(LIVE){ clearTimeout(liveTimer); liveTimer = setTimeout(loadData, 300); }
+  else refresh();
+}
+
+document.getElementById('dateFrom').addEventListener('change', onDateChange);
+document.getElementById('dateTo').addEventListener('change', onDateChange);
+document.getElementById('search').addEventListener('input', refresh);
 document.getElementById('resetBtn').addEventListener('click', () => {
-  document.getElementById('dateFrom').value='';
-  document.getElementById('dateTo').value='';
   document.getElementById('search').value='';
-  refresh();
+  if(LIVE){ loadData(); }
+  else {
+    document.getElementById('dateFrom').value='';
+    document.getElementById('dateTo').value='';
+    refresh();
+  }
 });
 document.getElementById('closeModal').addEventListener('click', closeModal);
 document.getElementById('modalBackdrop').addEventListener('click', closeModal);
@@ -455,15 +487,20 @@ document.querySelectorAll('#measureSeg button').forEach(b =>
   }));
 
 (function initDates(){
-  const dates = ALL_JOBS.map(j=>j.JobDate).filter(Boolean).sort();
-  if(dates.length){
-    document.getElementById('dateFrom').value = dates[0];
-    document.getElementById('dateTo').value   = dates[dates.length-1];
+  const f = document.getElementById('dateFrom'), t = document.getElementById('dateTo');
+  if(LIVE){
+    const to = new Date(), from = new Date();
+    from.setDate(from.getDate() - 90);           // default: last 90 days
+    f.value = from.toISOString().slice(0,10);
+    t.value = to.toISOString().slice(0,10);
+  } else {
+    const dates = ALL_JOBS.map(j=>j.JobDate).filter(Boolean).sort();
+    if(dates.length){ f.value = dates[0]; t.value = dates[dates.length-1]; }
   }
 })();
 
 applyTheme();
-refresh();
+if(LIVE) loadData(); else refresh();
 </script>
 </body>
 </html>
