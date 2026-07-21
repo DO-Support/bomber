@@ -83,6 +83,9 @@
             <button data-t="dark" class="theme-btn px-2.5 h-full grid place-items-center" title="Dark" aria-label="Dark"><i data-lucide="moon" class="w-4 h-4"></i></button>
           </div>
         </div>
+        <button id="runBtn" style="display:none" class="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 inline-flex items-center gap-1.5">
+          <i data-lucide="player-play" class="w-4 h-4"></i> Run
+        </button>
         <button id="resetBtn" class="h-9 px-3 rounded-lg border border-ink-200 dark:border-slate-700 text-sm text-ink-700 dark:text-slate-300 hover:bg-ink-100 dark:hover:bg-slate-800 flex items-center gap-1.5">
           <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
         </button>
@@ -267,8 +270,9 @@ function getFiltered(){
   const to   = document.getElementById('dateTo').value;
   const q    = document.getElementById('search').value.trim().toLowerCase();
   return ALL_JOBS.filter(j => {
-    if(from && j.JobDate < from) return false;
-    if(to   && j.JobDate > to)   return false;
+    // In live mode the dates are query params (applied on Run), not a client filter.
+    if(!LIVE && from && j.JobDate < from) return false;
+    if(!LIVE && to   && j.JobDate > to)   return false;
     if(q){
       const inJob = j.JobNumber.toLowerCase().includes(q)
                  || (j.CustomerName||'').toLowerCase().includes(q)
@@ -456,15 +460,19 @@ async function loadData(){
     document.getElementById('tableMeta').textContent = 'Error loading data: ' + e.message;
   }finally{ setLoading(false); }
 }
-let liveTimer;
+function markPending(){
+  // Live mode: dates don't fetch until Run is clicked — nudge the user.
+  if(LIVE) document.getElementById('tableMeta').textContent = 'Dates changed — click Run to load.';
+}
 function onDateChange(){
-  if(LIVE){ clearTimeout(liveTimer); liveTimer = setTimeout(loadData, 300); }
-  else refresh();
+  if(LIVE) markPending();   // wait for Run
+  else refresh();           // static: instant client-side filter
 }
 
 document.getElementById('dateFrom').addEventListener('change', onDateChange);
 document.getElementById('dateTo').addEventListener('change', onDateChange);
 document.getElementById('search').addEventListener('input', refresh);
+document.getElementById('runBtn').addEventListener('click', loadData);
 document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('search').value='';
   if(LIVE){ loadData(); }
@@ -500,7 +508,12 @@ document.querySelectorAll('#measureSeg button').forEach(b =>
 })();
 
 applyTheme();
-if(LIVE) loadData(); else refresh();
+if(LIVE){
+  document.getElementById('runBtn').style.display = 'inline-flex';
+  loadData();          // initial default-range load
+} else {
+  refresh();
+}
 </script>
 </body>
 </html>
