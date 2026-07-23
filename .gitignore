@@ -1,0 +1,25 @@
+# Secrets — never commit
+.env
+secrets/
+certs/
+
+# Live-data static build (real iSync financials/customers)
+job-material-variance-dashboard.html
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+
+# Local session / agent dir
+.claude/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/

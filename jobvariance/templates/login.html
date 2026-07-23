@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · Job Material Variance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode:'class', theme:{ extend:{
+      colors:{ brand:{50:'#eef4ff',500:'#2563eb',600:'#1d4ed8',700:'#1e40af'},
+               ink:{900:'#0f172a',700:'#334155',500:'#64748b',400:'#94a3b8',200:'#e2e8f0',100:'#f1f5f9'} },
+      fontFamily:{ sans:['Inter','system-ui','Segoe UI','sans-serif'] } }}}
+  </script>
+  <script>
+    (function(){
+      var p = localStorage.getItem('jmv-theme') || 'auto';
+      var dark = p === 'dark' || (p === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', dark);
+    })();
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="h-full bg-ink-100 dark:bg-slate-900 text-ink-900 dark:text-slate-100 font-sans antialiased">
+  <div class="min-h-full grid place-items-center px-4">
+    <div class="w-full max-w-sm">
+      <div class="flex items-center gap-3 mb-6 justify-center">
+        <div class="w-10 h-10 rounded-xl bg-brand-600 grid place-items-center text-white">
+          <i data-lucide="layers" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-semibold leading-tight">Job Material Variance</h1>
+          <p class="text-xs text-ink-500 dark:text-slate-400">Sign in to continue</p>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-ink-200 dark:border-slate-700 p-6 shadow-sm">
+        __ERROR__
+        <form method="post" action="/login" class="space-y-4">
+          <div>
+            <label for="username" class="block text-[11px] font-medium text-ink-500 dark:text-slate-400 mb-1">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" required autofocus
+              class="w-full h-10 px-3 rounded-lg border border-ink-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
+          </div>
+          <div>
+            <label for="password" class="block text-[11px] font-medium text-ink-500 dark:text-slate-400 mb-1">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required
+              class="w-full h-10 px-3 rounded-lg border border-ink-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
+          </div>
+          <button type="submit"
+            class="w-full h-10 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium inline-flex items-center justify-center gap-1.5">
+            <i data-lucide="log-in" class="w-4 h-4"></i> Sign in
+          </button>
+        </form>
+      </div>
+      <p class="text-center text-[11px] text-ink-400 dark:text-slate-500 mt-4">Internal · access over VPN only</p>
+    </div>
+  </div>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
