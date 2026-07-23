@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-slim AS base
+FROM python:3.12-slim-bookworm AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -7,15 +7,17 @@ ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive
 
 # --- Microsoft ODBC Driver 18 for SQL Server (Debian 12 / bookworm) ---
+# Use Microsoft's packages-microsoft-prod.deb, which installs the apt source
+# list and GPG key correctly (avoids hand-editing prod.list, which now ships
+# its own options bracket and breaks a naive sed rewrite).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl gnupg ca-certificates apt-transport-https unixodbc \
- && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
- && curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list \
-      | sed 's|https://packages.microsoft.com|[signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com|' \
-      > /etc/apt/sources.list.d/mssql-release.list \
+ && apt-get install -y --no-install-recommends curl gnupg ca-certificates unixodbc \
+ && curl -sSL -O https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb \
+ && dpkg -i packages-microsoft-prod.deb \
+ && rm packages-microsoft-prod.deb \
  && apt-get update \
  && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 \
- && apt-get purge -y curl gnupg apt-transport-https \
+ && apt-get purge -y curl gnupg \
  && apt-get autoremove -y \
  && rm -rf /var/lib/apt/lists/*
 
