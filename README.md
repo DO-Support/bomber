@@ -8,13 +8,13 @@ VPN), app-level session login. nginx is the only published container.
 
 ```bash
 # 1. TLS cert (self-signed; set the hostname users will type)
-./scripts/gen_selfsigned_cert.sh jmv.internal.lan        # → ./certs/{fullchain,privkey}.pem
+./gen_selfsigned_cert.sh jmv.internal.lan        # → ./certs/{fullchain,privkey}.pem
 
 # 2. Secrets (never committed — see .gitignore)
 mkdir -p secrets
 printf '%s' 'YOUR_AZURE_SQL_PASSWORD'            > secrets/mssql_password.txt
 python -c "import secrets;print(secrets.token_urlsafe(48))" > secrets/session_secret.txt
-python scripts/gen_password_hash.py --user alice --user bob > secrets/app_users.json
+python gen_password_hash.py --user user1 --user user2 > secrets/app_users.json
 
 # 3. Non-secret env (server, db, database, username, tuning)
 cp .env.example .env        # edit MSSQL_SERVER / MSSQL_DATABASE / MSSQL_USERNAME etc.
